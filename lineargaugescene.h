@@ -35,6 +35,9 @@ public:
     //! \return true if the gauge displays two values, else just one
     bool getDualValue(void) const {return dualvalue;}
 
+    //! \return true if the gauge displays two text labels, else just one
+    bool getDualValueLabel(void) const {return dualvaluelabel;}
+
     //! \return the starting point of the drawing rectangle
     double getDrawFrom(void) const {return drawFrom;}
 
@@ -54,7 +57,10 @@ public:
     void setTicksBothSides(bool bothSides);
 
     //! Set if the gauge displays two values or just one (the default)
-    void setDualValue(bool dual);    
+    void setDualValue(bool dual) {dualvalue = dual;}
+
+    //! Set if the gauge displays two text labels or just one (the default)
+    void setDualValueLabel(bool dual) {dualvaluelabel = dual;}
 
     //! Set the gauge reading
     void setReading(double value) override;
@@ -94,12 +100,12 @@ protected:    // properties
     double gaugeReading2;           //!< The second gauge reading for the graphics
     double drawFrom;                //!< The starting point of the drawing rect
     bool horizontal;                //!< Flag for horizontal versus vertical
-    bool dualvalue;                 //!< Flag for dual dual signal
+    bool dualvalue;                 //!< Flag for dual pointers
+    bool dualvaluelabel;            //!< Flag for dual labels
     bool ticksRightOrBottom;        //!< Flag to put the tick marks on the right or bottom side
     bool ticksBothSides;            //!< Flag to put the tick marks on both sides
     QRect size;                     //!< The size of the viewing rect
     QGraphicsRectItem* rectItem;    //!< The primary display of the first value
-    QGraphicsRectItem* rect2Item;   //!< The primary display of the second value
     QGraphicsTextItem* readingTextItem; //!< The text display of the values
 };
 

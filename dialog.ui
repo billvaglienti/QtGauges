@@ -25,6 +25,9 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
     </widget>
    </item>
    <item row="1" column="0">
@@ -38,6 +41,9 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
     </widget>
    </item>
    <item row="2" column="0" colspan="2">
@@ -48,6 +54,9 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
     </widget>
    </item>
    <item row="3" column="0" colspan="2">
@@ -57,6 +66,9 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
      </property>
     </widget>
    </item>

@@ -8,11 +8,11 @@ LinearGaugeScene::LinearGaugeScene(void) :
     drawFrom(std::numeric_limits<double>::max()),
     horizontal(false),
     dualvalue(false),
+    dualvaluelabel(false),
     ticksRightOrBottom(false),
     ticksBothSides(false),
     size(),
     rectItem(0),
-    rect2Item(0),
     readingTextItem(0)
 {
 }
@@ -82,17 +82,6 @@ void LinearGaugeScene::setTicksBothSides(bool bothSides)
 
 
 /*!
- * Set if the gauge displays two values or just one (the default)
- * \param dual should be true to display two values using a split rectangle
- */
-void LinearGaugeScene::setDualValue(bool dual)
-{
-    dualvalue = dual;
-    dirty = true;
-}
-
-
-/*!
  * Set the gauge reading.  If any other set call has been made before this one the scene
  * will be considered dirty and completely rebuilt, otherwise only the text display and
  * pointer will be updated.  In this case the scene updated is the internal scene
@@ -148,7 +137,7 @@ void LinearGaugeScene::setReading2(double pointerValue2, double textValue2)
     textReading2 = textValue2;
 
     // Do nothing unless dual values are enabled
-    if(!dualvalue)
+    if(!(dualvalue || dualvaluelabel))
         return;
 
     if(dirty)
@@ -207,8 +196,9 @@ void LinearGaugeScene::updateReading(QGraphicsScene& scene)
  */
 void LinearGaugeScene::buildRect(QGraphicsScene& scene)
 {
-    QBrush brush = QBrush(getColorFromReading(gaugeReading));
-    QPen pen = QPen(getColorFromReading(gaugeReading));
+    QColor color = getColorFromReading(gaugeReading);
+    QBrush brush = QBrush(color);
+    QPen pen = QPen(color);
 
     // One pixel wide
     pen.setWidthF(1);
@@ -221,14 +211,6 @@ void LinearGaugeScene::buildRect(QGraphicsScene& scene)
         rectItem = 0;
     }
 
-    // Remove the old second rect
-    if(rect2Item)
-    {
-        scene.removeItem(rect2Item);
-        delete rect2Item;
-        rect2Item = 0;
-    }
-
     double from;
     if((drawFrom > scaleStart) && (drawFrom < getTopOfScale()))
         from = scaleToPixel(drawFrom);
@@ -238,13 +220,14 @@ void LinearGaugeScene::buildRect(QGraphicsScene& scene)
     QGraphicsRectItem* item = 0;
     double signal = scaleToPixel(gaugeReading);
 
-    // This is a border rect which is needed to make sure the view is scaling
-    //   the whole picture, even if the current reading does not extend that
-    //   far.  It also provides color data, even when the reading is zero
     if(dualvalue)
     {
-        QBrush brush2 = QBrush(getColorFromReading(gaugeReading2));
-        QPen pen2 = QPen(getColorFromReading(gaugeReading2));
+        QColor color2 = getColorFromReading(gaugeReading2);
+        QBrush brush2 = QBrush(color2);
+        QPen pen2 = QPen(color2);
+
+        // A 50/50 blend of both colors
+        QColor blended = QColor((color.red()+color2.red())/2, (color.green()+color2.green())/2, (color.blue()+color2.blue())/2);
 
         // One pixel wide
         pen2.setWidthF(1);
@@ -252,18 +235,10 @@ void LinearGaugeScene::buildRect(QGraphicsScene& scene)
         double signal2 = scaleToPixel(gaugeReading2);
         QGraphicsRectItem* item2 = 0;
 
-        if(horizontal)
-        {
-            // Horizontal rects are setup with the first rect on top of the second
-            rectItem = scene.addRect(0, 0, size.width(), size.height()/2, pen, QBrush());
-            rect2Item = scene.addRect(0, size.height()/2, size.width(), size.height(), pen2, QBrush());
-        }
-        else
-        {
-            // Vertical rects are setup with the first rect on the left
-            rectItem = scene.addRect(0, 0, size.width()/2, size.height(), pen, QBrush());
-            rect2Item = scene.addRect(size.width()/2, 0, size.width(), size.height(), pen2, QBrush());
-        }
+        // This is a border rect which is needed to make sure the view is scaling
+        //   the whole picture, even if the current reading does not extend that
+        //   far.  It also provides color data, even when the reading is zero
+        rectItem = scene.addRect(0, 0, size.width(), size.height(), QPen(blended), QBrush());
 
         // Now draw the gauge rect, which is filled in as far as needed to display the reading
         if(horizontal)
@@ -294,14 +269,14 @@ void LinearGaugeScene::buildRect(QGraphicsScene& scene)
 
         // Needs to be under everything else
         item2->setZValue(-11.0);
-        rect2Item->setZValue(-11.0);
-
-        // Treat these two rects as one item
-        item2->setParentItem(rect2Item);
+        item2->setParentItem(rectItem);
 
     }// if dual valued
     else
     {
+        // This is a border rect which is needed to make sure the view is scaling
+        //   the whole picture, even if the current reading does not extend that
+        //   far.  It also provides color data, even when the reading is zero
         rectItem = scene.addRect(0, 0, size.width(), size.height(), pen, QBrush());
 
         // Now draw the gauge rect, which is filled in as far as needed to display the reading
@@ -590,7 +565,7 @@ void LinearGaugeScene::buildReadingLabel(QGraphicsScene& scene)
 
     QString text = QString("%1").arg(textReading, 0, 'f', readingPrecision);
 
-    if(dualvalue)
+    if(dualvaluelabel)
         text += QString(" : %1").arg(textReading2, 0, 'f', readingPrecision);
 
     // Halfway along the scale
@@ -765,7 +740,6 @@ void LinearGaugeScene::createScene(QGraphicsScene& scene)
 
     // Does not exist now
     rectItem = 0;
-    rect2Item = 0;
     readingTextItem = 0;
 
     // Now the tick marks

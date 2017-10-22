@@ -20,12 +20,14 @@ Dialog::Dialog(QWidget *parent) :
     dial.setupView(ui->dialView);
     vertLinearGauge1.setupView(ui->vertLinearView1);
     vertLinearGauge1.setDualValue(true);
+    vertLinearGauge1.setDualValueLabel(true);
     vertLinearGauge2.setupView(ui->vertLinearView2);
     vertLinearGauge2.setTicksBothSides(true);
     vertLinearGauge2.setDualValue(true);
 
     horLinearGauge1.setupView(ui->horLinearView1);
     horLinearGauge1.setDualValue(true);
+    horLinearGauge1.setDualValueLabel(true);
     horLinearGauge2.setupView(ui->horLinearView2);
     horLinearGauge2.setTicksBothSides(true);
     horLinearGauge2.setDualValue(true);
