@@ -157,10 +157,10 @@ public:
     void setReadingPrecision(int precision);
 
     //! Set the gauge reading
-    virtual void setReading(double value){}
+    virtual void setReading(double value){(void)value;}
 
     //! Set the gauge reading
-    virtual void setReading(double pointerValue, double textValue){}
+    virtual void setReading(double pointerValue, double textValue){(void)pointerValue; (void)textValue;}
 
     //! Redraw the guage as needed
     void redraw(void) {setReading(gaugeReading, textReading);}

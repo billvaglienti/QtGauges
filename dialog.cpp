@@ -19,9 +19,16 @@ Dialog::Dialog(QWidget *parent) :
     attitude.setupView(ui->attitudeView);
     dial.setupView(ui->dialView);
     vertLinearGauge1.setupView(ui->vertLinearView1);
+    vertLinearGauge1.setDualValue(true);
     vertLinearGauge2.setupView(ui->vertLinearView2);
+    vertLinearGauge2.setTicksBothSides(true);
+    vertLinearGauge2.setDualValue(true);
+
     horLinearGauge1.setupView(ui->horLinearView1);
+    horLinearGauge1.setDualValue(true);
     horLinearGauge2.setupView(ui->horLinearView2);
+    horLinearGauge2.setTicksBothSides(true);
+    horLinearGauge2.setDualValue(true);
 
     horLinearGauge1.setHorizontal(true);
     horLinearGauge2.setHorizontal(true);
@@ -64,15 +71,17 @@ void Dialog::onTimer(void)
 
     // convert to 0 to 2PI
     double input = 2.0*3.1415926535897932384626433832795*msecs/10000.0;
+    double input2 = input;
 
     // A number from 0 to 100 that moves sinusoidally with time
     input = 50.0*sin(input) + 50.0;
+    input2 = 50.0*cos(input2) + 50.0;
 
     attitude.setAngles(input-50,input-50,input*3.6);
     dial.setReading(input, input*1000);
-    horLinearGauge1.setReading(input);
-    horLinearGauge2.setReading(input);
-    vertLinearGauge1.setReading(input);
-    vertLinearGauge2.setReading(input);
+    horLinearGauge1.setDualReadings(input, input2);
+    horLinearGauge2.setDualReadings(input, input2);
+    vertLinearGauge1.setDualReadings(input, input2);
+    vertLinearGauge2.setDualReadings(input, input2);
 }
 

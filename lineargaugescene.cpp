@@ -3,11 +3,16 @@
 #include <limits>
 
 LinearGaugeScene::LinearGaugeScene(void) :
+    textReading2(0),
+    gaugeReading2(0),
     drawFrom(std::numeric_limits<double>::max()),
     horizontal(false),
+    dualvalue(false),
     ticksRightOrBottom(false),
+    ticksBothSides(false),
     size(),
     rectItem(0),
+    rect2Item(0),
     readingTextItem(0)
 {
 }
@@ -66,10 +71,32 @@ void LinearGaugeScene::setTicksRightOrbottom(bool rightOrBottom)
 
 
 /*!
+ * Set if the ticks marks are on both sides
+ * \param bothSides should be true to place the tick marks on both sides of the display
+ */
+void LinearGaugeScene::setTicksBothSides(bool bothSides)
+{
+    ticksBothSides = bothSides;
+    dirty = true;
+}
+
+
+/*!
+ * Set if the gauge displays two values or just one (the default)
+ * \param dual should be true to display two values using a split rectangle
+ */
+void LinearGaugeScene::setDualValue(bool dual)
+{
+    dualvalue = dual;
+    dirty = true;
+}
+
+
+/*!
  * Set the gauge reading.  If any other set call has been made before this one the scene
  * will be considered dirty and completely rebuilt, otherwise only the text display and
  * pointer will be updated.  In this case the scene updated is the internal scene
- * \param value is the new reading, which must lie within the scale range.
+ * \param value is the new reading.
  */
 void LinearGaugeScene::setReading(double value)
 {
@@ -81,7 +108,6 @@ void LinearGaugeScene::setReading(double value)
  * Set the gauge reading.  If any other set call has been made before this one the scene
  * will be considered dirty and completely rebuilt, otherwise only the text display and
  * pointer will be updated.
- * \param scene will be updated with the new reading
  * \param pointerValue is the value to display with the pointer
  * \param textValue is the value to display with the text lable.
  */
@@ -89,6 +115,73 @@ void LinearGaugeScene::setReading(double pointerValue, double textValue)
 {
     gaugeReading = pointerValue;
     textReading = textValue;
+
+    if(dirty)
+        createScene(myScene);
+    else
+        updateReading(myScene);
+}
+
+
+/*!
+ * Set the second gauge reading, but only if the dual values are enabled.  If any other
+ * set call has been made before this one the scene will be considered dirty and
+ * completely rebuilt, otherwise only the text display and pointer will be updated.
+ * \param value2 is the new second reading.
+ */
+void LinearGaugeScene::setReading2(double value2)
+{
+    setReading2(value2, value2);
+}
+
+
+/*!
+ * Set the second gauge reading, but only if the dual values are enabled.  If any other
+ * set call has been made before this one the scene will be considered dirty and
+ * completely rebuilt, otherwise only the text display and pointer will be updated.
+ * \param pointerValue2 is the value to display with the second pointer
+ * \param textValue2 is the value to display with the second text label.
+ */
+void LinearGaugeScene::setReading2(double pointerValue2, double textValue2)
+{
+    gaugeReading2 = pointerValue2;
+    textReading2 = textValue2;
+
+    // Do nothing unless dual values are enabled
+    if(!dualvalue)
+        return;
+
+    if(dirty)
+        createScene(myScene);
+    else
+        updateReading(myScene);
+}
+
+
+/*!
+ * Set the gauge reading for the first and second reading
+ * \param value is the value to display with the first pointer
+ * \param value2 is the value to display with the second pointer, if dual values are enabled
+ */
+void LinearGaugeScene::setDualReadings(double value, double value2)
+{
+    setDualReadings(value, value, value2, value2);
+}
+
+
+/*!
+ * Set the gauge reading for the first and second reading
+ * \param pointerValue is the value to display with the first pointer
+ * \param textValue is the value to display with the text label.
+ * \param pointerValue2 is the value to display with the second pointer, if dual values are enabled
+ * \param textValue2 is the value to display with the second text label.
+ */
+void LinearGaugeScene::setDualReadings(double pointerValue, double textValue, double pointerValue2, double textValue2)
+{
+    gaugeReading = pointerValue;
+    textReading = textValue;
+    gaugeReading2 = pointerValue2;
+    textReading2 = textValue2;
 
     if(dirty)
         createScene(myScene);
@@ -108,6 +201,10 @@ void LinearGaugeScene::updateReading(QGraphicsScene& scene)
 }
 
 
+/*!
+ * Build the rects that describes the two readings
+ * \param scene receives the rects
+ */
 void LinearGaugeScene::buildRect(QGraphicsScene& scene)
 {
     QBrush brush = QBrush(getColorFromReading(gaugeReading));
@@ -116,7 +213,7 @@ void LinearGaugeScene::buildRect(QGraphicsScene& scene)
     // One pixel wide
     pen.setWidthF(1);
 
-    // Remove the old rect
+    // Remove the old first rect
     if(rectItem)
     {
         scene.removeItem(rectItem);
@@ -124,44 +221,116 @@ void LinearGaugeScene::buildRect(QGraphicsScene& scene)
         rectItem = 0;
     }
 
-    // This is a border rect which is needed to make sure the view is scaling
-    //   the whole picture, even if the current reading does not extend that
-    //   far.  It also provides color data, even when the reading is zero
-    rectItem = scene.addRect(0, 0, size.width(), size.height(), pen, QBrush());
+    // Remove the old second rect
+    if(rect2Item)
+    {
+        scene.removeItem(rect2Item);
+        delete rect2Item;
+        rect2Item = 0;
+    }
 
-    QGraphicsRectItem* item;
-
-    double signal = scaleToPixel(gaugeReading);
     double from;
     if((drawFrom > scaleStart) && (drawFrom < getTopOfScale()))
         from = scaleToPixel(drawFrom);
     else
         from = scaleToPixel(scaleStart);
 
-    // Now draw the gauge rect, which is filled in as far as needed to display the reading
-    if(horizontal)
-    {     
-        if(from < signal)
-            item = scene.addRect(from, 0, signal-from, size.height(), pen, brush);
+    QGraphicsRectItem* item = 0;
+    double signal = scaleToPixel(gaugeReading);
+
+    // This is a border rect which is needed to make sure the view is scaling
+    //   the whole picture, even if the current reading does not extend that
+    //   far.  It also provides color data, even when the reading is zero
+    if(dualvalue)
+    {
+        QBrush brush2 = QBrush(getColorFromReading(gaugeReading2));
+        QPen pen2 = QPen(getColorFromReading(gaugeReading2));
+
+        // One pixel wide
+        pen2.setWidthF(1);
+
+        double signal2 = scaleToPixel(gaugeReading2);
+        QGraphicsRectItem* item2 = 0;
+
+        if(horizontal)
+        {
+            // Horizontal rects are setup with the first rect on top of the second
+            rectItem = scene.addRect(0, 0, size.width(), size.height()/2, pen, QBrush());
+            rect2Item = scene.addRect(0, size.height()/2, size.width(), size.height(), pen2, QBrush());
+        }
         else
-            item = scene.addRect(signal, 0, from-signal, size.height(), pen, brush);
-    }
+        {
+            // Vertical rects are setup with the first rect on the left
+            rectItem = scene.addRect(0, 0, size.width()/2, size.height(), pen, QBrush());
+            rect2Item = scene.addRect(size.width()/2, 0, size.width(), size.height(), pen2, QBrush());
+        }
+
+        // Now draw the gauge rect, which is filled in as far as needed to display the reading
+        if(horizontal)
+        {
+            if(from < signal)
+                item = scene.addRect(from, 0, signal-from, size.height()/2, pen, brush);
+            else
+                item = scene.addRect(signal2, 0, from-signal, size.height()/2, pen, brush);
+
+            if(from < signal2)
+                item2 = scene.addRect(from, size.height()/2, signal2-from, size.height(), pen2, brush2);
+            else
+                item2 = scene.addRect(signal2, size.height()/2, from-signal2, size.height(), pen2, brush2);
+        }
+        else
+        {
+            // Y axis is reversed (0 on top, positive downward)
+            if(from < signal)
+                item = scene.addRect(0, from, size.width()/2, signal-from, pen, brush);
+            else
+                item = scene.addRect(0, signal, size.width()/2, from - signal, pen, brush);
+
+            if(from < signal2)
+                item2 = scene.addRect(size.width()/2, from, size.width(), signal2-from, pen2, brush2);
+            else
+                item2 = scene.addRect(size.width()/2, signal2, size.width(), from - signal2, pen2, brush2);
+        }
+
+        // Needs to be under everything else
+        item2->setZValue(-11.0);
+        rect2Item->setZValue(-11.0);
+
+        // Treat these two rects as one item
+        item2->setParentItem(rect2Item);
+
+    }// if dual valued
     else
-    {         
-        // Y axis is reversed (0 on top, positive downward)
-        if(from < signal)
-            item = scene.addRect(0, from, size.width(), signal-from, pen, brush);
+    {
+        rectItem = scene.addRect(0, 0, size.width(), size.height(), pen, QBrush());
+
+        // Now draw the gauge rect, which is filled in as far as needed to display the reading
+        if(horizontal)
+        {
+            if(from < signal)
+                item = scene.addRect(from, 0, signal-from, size.height(), pen, brush);
+            else
+                item = scene.addRect(signal, 0, from-signal, size.height(), pen, brush);
+        }
         else
-            item = scene.addRect(0, signal, size.width(), from - signal, pen, brush);
-    }
+        {
+            // Y axis is reversed (0 on top, positive downward)
+            if(from < signal)
+                item = scene.addRect(0, from, size.width(), signal-from, pen, brush);
+            else
+                item = scene.addRect(0, signal, size.width(), from - signal, pen, brush);
+        }
+
+    }// else single values
 
     // Needs to be under everything else
     item->setZValue(-10.0);
     rectItem->setZValue(-10.0);
 
-    // I would like to treat these two rects as one item
+    // Treat these two rects as one item
     item->setParentItem(rectItem);
-}
+
+}// LinearGaugeScene::buildRect
 
 
 /*!
@@ -233,13 +402,15 @@ void LinearGaugeScene::buildHorizontalTicks(QPainterPath& path, double tickLengt
         // don't step on outside border
         if((pixel > 0) && (pixel < size.width()))
         {
-            if(ticksRightOrBottom)
+            // In both sides there is no "right or bottom" we do both
+            if(ticksRightOrBottom || ticksBothSides)
             {
                 // Draw vertical line from bottom up
                 path.moveTo(pixel, size.height()-1);
                 path.lineTo(pixel, size.height()-tickLength-1);
             }
-            else
+
+            if(!ticksRightOrBottom || ticksBothSides)
             {
                 // Draw vertical line from top down
                 path.moveTo(pixel, 1);
@@ -273,13 +444,15 @@ void LinearGaugeScene::buildVerticalTicks(QPainterPath& path, double tickLength,
         // don't step on outside border
         if((pixel > 0) && (pixel < size.height()))
         {
-            if(ticksRightOrBottom)
+            // In both sides there is no "right or bottom" we do both
+            if(ticksRightOrBottom || ticksBothSides)
             {
                 // Draw horizontal line from right side to the left
                 path.moveTo(size.width()-1, pixel);
                 path.lineTo(size.width()-tickLength-1, pixel);
             }
-            else
+
+            if(!ticksRightOrBottom || ticksBothSides)
             {
                 // Draw horizontal line, from left side to the right
                 path.moveTo(1, pixel);
@@ -416,6 +589,9 @@ void LinearGaugeScene::buildReadingLabel(QGraphicsScene& scene)
       return;
 
     QString text = QString("%1").arg(textReading, 0, 'f', readingPrecision);
+
+    if(dualvalue)
+        text += QString(" : %1").arg(textReading2, 0, 'f', readingPrecision);
 
     // Halfway along the scale
     double halfScale = (getTopOfScale()+scaleStart)*0.5;
@@ -589,45 +765,8 @@ void LinearGaugeScene::createScene(QGraphicsScene& scene)
 
     // Does not exist now
     rectItem = 0;
+    rect2Item = 0;
     readingTextItem = 0;
-
-    /*
-    if(majorTickMarkLength > 0)
-    {
-        double lowPos = scaleToPixel(scaleStart+scaleLowRange);
-        double okPos  = scaleToPixel(scaleStart+scaleLowRange+scaleMidRange);
-        QPen pen;
-        pen.setWidthF(1.0);
-        pen.setColor(Qt::gray);
-
-        if(horizontal)
-        {
-            double height = majorTickMarkLength*size.height();
-            double topY = 0;
-
-            if(ticksRightOrBottom)
-                topY = size.height() - height;
-
-            scene.addRect(0,      topY, lowPos,       height, QPen(lowColor), QBrush(lowColor));
-            scene.addRect(lowPos, topY, okPos,        height, QPen(midColor), QBrush(midColor));
-            scene.addRect(okPos,  topY, size.width(), height, QPen(highColor), QBrush(highColor));
-            scene.addRect(0,      topY, size.width(), height, pen, QBrush(Qt::transparent));
-        }
-        else
-        {
-            double width = majorTickMarkLength*size.width();
-            double leftX = 0;
-
-            if(ticksRightOrBottom)
-                leftX = size.width() - width;
-
-            scene.addRect(leftX, 0,     width, okPos,        QPen(highColor), QBrush(highColor));
-            scene.addRect(leftX, okPos, width, lowPos,       QPen(midColor), QBrush(midColor));
-            scene.addRect(leftX, lowPos,width, size.height(),QPen(lowColor), QBrush(lowColor));
-            scene.addRect(leftX, 0,     width, size.height(),pen, QBrush(Qt::transparent));
-        }
-    }
-    */
 
     // Now the tick marks
     buildMinorTicks(scene);

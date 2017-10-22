@@ -5,40 +5,21 @@
 LinearGaugeScene2::LinearGaugeScene2() :
     LinearGaugeScene(),
     pathItem(0),
+    path2Item(0),
     thumbWidth(0.05),
     barWidth(0.25),
     thumbColor(Qt::white)
 {
 }
 
-/*!
- * Set the gauge reading.  If any other set call has been made before this one the scene
- * will be considered dirty and completely rebuilt, otherwise only the text display and
- * pointer will be updated.  In this case the scene updated is the internal scene
- * \param value is the new reading, which must lie within the scale range.
- */
-void LinearGaugeScene2::setReading(double value)
-{
-    setReading(value, value);
-}
-
 
 /*!
- * Set the gauge reading.  If any other set call has been made before this one the scene
- * will be considered dirty and completely rebuilt, otherwise only the text display and
- * pointer will be updated.
- * \param pointerValue is the value to display with the pointer
- * \param textValue is the value to display with the text lable.
+ * Draw the gauge reading, assume all other drawing is done and good
+ * \param scene will be updated with the new reading
  */
-void LinearGaugeScene2::setReading(double pointerValue, double textValue)
+void LinearGaugeScene2::updateReading(QGraphicsScene& scene)
 {
-    gaugeReading = pointerValue;
-    textReading = textValue;
-
-    if(dirty)
-        createScene(myScene);
-    else
-        buildThumb(myScene);
+    buildThumb(scene);
 }
 
 
@@ -116,6 +97,13 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
         pathItem = 0;
     }
 
+    if(path2Item)
+    {
+        scene.removeItem(path2Item);
+        delete path2Item;
+        path2Item = 0;
+    }
+
     if(thumbWidth <= 0.0)
         return;
 
@@ -124,19 +112,39 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
     QBrush brush(thumbColor);
     QPainterPath path;
 
-    // Location of the center of the thumb
-    double location = scaleToPixel(gaugeReading);
+    // The first reading
+    drawThumb(path, scaleToPixel(gaugeReading), ticksRightOrBottom);
+    pathItem = scene.addPath(path, pen, brush);
 
+    if(dualvalue)
+    {
+        path = QPainterPath();
+        drawThumb(path, scaleToPixel(gaugeReading2), !ticksRightOrBottom);
+        path2Item = scene.addPath(path, pen, brush);
+    }
+
+}// LinearGaugeScene2::buildThumb
+
+
+void LinearGaugeScene2::drawThumb(QPainterPath& path, double location, bool rightorbottom)
+{
     if(horizontal)
     {
         double width = size.width()*thumbWidth;
         double left = location - width*0.5;
 
-        if( ((majorSpacing > 0.0) && (majorTickMarkLength > 0.0)) ||
-            ((minorSpacing > 0.0) && (minorTickMarkLength > 0.0)) )
+        // If we are drawing tick marks then I want the thumb to be a pointer at the tick marks
+        if(rightorbottom)
         {
-            // If we are drawing tick marks then I want the thumb to be a pointer at the tick marks
-            if(ticksRightOrBottom)
+            if(dualvalue)
+            {
+                // Thumb on the top, pointing down
+                path.moveTo(left, 0.5*size.height());
+                path.lineTo(left+width, 0.5*size.height());
+                path.lineTo(location, size.height());
+                path.lineTo(left, 0.5*size.height());
+            }
+            else
             {
                 // Thumb on the top, pointing down
                 path.moveTo(left, 0);
@@ -145,8 +153,19 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
                 path.lineTo(location, size.height());
                 path.lineTo(left, 0.5*size.height());
                 path.lineTo(left, 0);
+            }
 
-            }// if ticks on the bottom
+        }// if ticks on the bottom
+        else
+        {
+            if(dualvalue)
+            {
+                // Thumb on the bottom, pointing up
+                path.moveTo(left, 0.5*size.height());
+                path.lineTo(left+width, 0.5*size.height());
+                path.lineTo(location, 0);
+                path.lineTo(left, 0.5*size.height());
+            }
             else
             {
                 // Thumb on the bottom, pointing up
@@ -156,20 +175,9 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
                 path.lineTo(location, 0);
                 path.lineTo(left, 0.5*size.height());
                 path.lineTo(left, size.height());
+            }
 
-            }// if ticks on the top
-
-        }// if drawing tickmarks
-        else
-        {
-            // This is the easy case, just draw a bar
-            path.moveTo(left, 0);
-            path.lineTo(left+width, 0);
-            path.lineTo(left+width, size.height());
-            path.lineTo(left, size.height());
-            path.lineTo(left, 0);
-
-        }// else if not drawing tick marks
+        }// if ticks on the top
 
     }// if horizontal gauge
     else
@@ -177,11 +185,18 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
         double height = size.height()*thumbWidth;
         double top = location - height*0.5;
 
-        if( ((majorSpacing > 0.0) && (majorTickMarkLength > 0.0)) ||
-            ((minorSpacing > 0.0) && (minorTickMarkLength > 0.0)) )
+        // If we are drawing tick marks then I want the thumb to be a pointer at the tick marks
+        if(rightorbottom)
         {
-            // If we are drawing tick marks then I want the thumb to be a pointer at the tick marks
-            if(ticksRightOrBottom)
+            if(dualvalue)
+            {
+                // Thumb on the left, pointing right
+                path.moveTo(0.5*size.width(), top);
+                path.lineTo(size.width(), location);
+                path.lineTo(0.5*size.width(), top+height);
+                path.lineTo(0.5*size.width(), top);
+            }
+            else
             {
                 // Thumb on the left, pointing right
                 path.moveTo(0, top);
@@ -190,8 +205,19 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
                 path.lineTo(0.5*size.width(), top+height);
                 path.lineTo(0, top+height);
                 path.lineTo(0, top);
+            }
 
-            }// if ticks on the right
+        }// if ticks on the right
+        else
+        {
+            if(dualvalue)
+            {
+                // Thumb on the right, pointing left
+                path.moveTo(0.5*size.width(), top);
+                path.lineTo(0, location);
+                path.lineTo(0.5*size.width(), top+height);
+                path.lineTo(0.5*size.width(), top);
+            }
             else
             {
                 // Thumb on the right, pointing left
@@ -201,26 +227,13 @@ void LinearGaugeScene2::buildThumb(QGraphicsScene& scene)
                 path.lineTo(0.5*size.width(), top+height);
                 path.lineTo(size.width(), top+height);
                 path.lineTo(size.width(), top);
+            }
 
-            }// if ticks on the left
-
-        }// if tick marks are being drawn
-        else
-        {
-            // This is the easy case, just draw a bar
-            path.moveTo(0, top);
-            path.lineTo(size.width(), top);
-            path.lineTo(size.width(), top+height);
-            path.lineTo(0, top+height);
-            path.lineTo(0, top);
-
-        }// else if no tickmarks
+        }// if ticks on the left
 
     }// if vertical gauge
 
-    pathItem = scene.addPath(path, pen, brush);
-
-}// LinearGaugeScene2::updateReading
+}// LinearGaugeScene2::drawThumb
 
 
 /*!
@@ -242,6 +255,7 @@ void LinearGaugeScene2::createScene(QGraphicsScene& scene)
     rectItem = 0;
     readingTextItem = 0;
     pathItem = 0;
+    path2Item = 0;
 
     // Build the rects
     buildRects(scene);

@@ -732,8 +732,8 @@ void DialScene::createScene(QGraphicsScene& scene)
     // This is a border rect which is needed to make sure the view is showing everything
     scene.addRect(scenerect, QPen(Qt::transparent), QBrush());
 
-    // The size reference, as the smaller of the height or width
-    if(scenerect.width() < scenerect.height())
+    // The size reference, as the larger of the height or width
+    if(scenerect.width() > scenerect.height())
         size = scenerect.width();
     else
         size = scenerect.height();
