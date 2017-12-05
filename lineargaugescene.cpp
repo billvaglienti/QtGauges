@@ -573,7 +573,7 @@ void LinearGaugeScene::buildReadingLabel(QGraphicsScene& scene)
 
     // Add the text
     readingTextItem = scene.addText(text, QFont());
-    readingTextItem->setDefaultTextColor(tickMarkColor);
+    readingTextItem->setDefaultTextColor(textReadingColor);
 
     QPointF location;
 

@@ -512,7 +512,7 @@ void DialScene::constructPointer(void)
 
 /*!
  * Build the label in the scene
- * \param scene is updated with the label.  The caller must make sure that
+ * \param scene is updated with the label. The caller must make sure that
  *        the previous label has been removed from the scene.
  */
 void DialScene::buildLabel(QGraphicsScene& scene)
@@ -657,7 +657,7 @@ void DialScene::buildReadingLabel(QGraphicsScene& scene)
 
     // Add the text, and make it a child of the rect
     QGraphicsTextItem* readingTextItem = scene.addText(text, font);
-    readingTextItem->setDefaultTextColor(tickMarkColor);
+    readingTextItem->setDefaultTextColor(textReadingColor);
     readingTextItem->setParentItem(readingRectItem);
 
     // The text bounding rectangle
@@ -758,6 +758,7 @@ void DialScene::createScene(QGraphicsScene& scene)
     // Done with this, don't let it pollute our scene
     scene.removeItem(item);
 
+    // If the bounding rectangle of the arc does not match the scene we need to recenter it
     rectx = (scenerect.width() - bound.width())/2;
     recty = (scenerect.height() - bound.height())/2;
     rectx -= bound.x();

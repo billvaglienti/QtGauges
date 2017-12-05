@@ -81,6 +81,9 @@ public:
     //! \return The color of the tickmarks and text
     QColor getTickMarkColor(void) const {return tickMarkColor;}
 
+    //! \return The color of the text that displays the reading
+    QColor getTextReadingColor(void) const {return textReadingColor;}
+
     //! \return Length of the major tick mark as a fraction of the size
     double getMajorTickMarkLength(void) const {return majorTickMarkLength;}
 
@@ -132,8 +135,11 @@ public:
     //! Set the color of the background, use Qt::transparent for no background
     void setBackgroundColor(QColor back);
 
-    //! Set the color of the tickmarks and text
+    //! Set the color of the tickmarks
     void setTickMarkColor(QColor color);
+
+    //! Set the color of the text that displays the reading
+    void setTextReadingColor(QColor color);
 
     //! Set length of the major tick mark as a fraction of the size
     void setMajorTickMarkLength(double major);
@@ -213,7 +219,8 @@ protected:    // properties
     QColor midColor;            //!< The color when the reading is mid
     QColor highColor;           //!< The color when the reading is high
     QColor backgroundColor;     //!< The color of the background
-    QColor tickMarkColor;       //!< The color of the tickmarks and label text
+    QColor tickMarkColor;       //!< The color of the tickmarks
+    QColor textReadingColor;    //!< The color of the reading text
     double majorTickMarkLength; //!< Length of the major tick mark as a fraction of the size
     double minorTickMarkLength; //!< Length of the minor tick mark as a fraction of the size
     double textReading;         //!< The gauge reading for the text
